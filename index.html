@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS Safety App</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0f;
+    color: #f1f1f1;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  h1 {
+    color: #ff3b5c;
+    margin: 20px 0 5px;
+    font-size: 28px;
+  }
+  .subtitle {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 25px;
+  }
+  .sos-btn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ff3b5c, #b8002e);
+    border: none;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    box-shadow: 0 0 30px rgba(255,59,92,0.6);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .sos-btn:active { transform: scale(0.95); }
+  .status {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #4ade80;
+    min-height: 20px;
+    text-align: center;
+  }
+  .section {
+    width: 100%;
+    max-width: 420px;
+    background: #16161f;
+    border-radius: 14px;
+    padding: 18px;
+    margin-top: 25px;
+  }
+  .section h3 {
+    font-size: 15px;
+    color: #ff3b5c;
+    margin-bottom: 12px;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #0a0a0f;
+    color: white;
+    font-size: 14px;
+  }
+  .add-btn {
+    width: 100%;
+    padding: 10px;
+    background: #ff3b5c;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+  }
+  .contact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0a0a0f;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .del-btn {
+    background: none;
+    border: none;
+    color: #ff3b5c;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .police-item {
+    background: #0a0a0f;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .police-item a { color: #4ade80; text-decoration: none; }
+  .fake-call-btn {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .lang-selector {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    background: #16161f;
+    color: white;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .fake-call-screen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #1a2a3a, #0a0a0f 60%);
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 60px 20px 50px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  .call-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 40px;
+  }
+  .caller-avatar {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.15); }
+    70% { box-shadow: 0 0 0 25px rgba(255,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+  .caller-name {
+    font-size: 28px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+  }
+  .call-status {
+    font-size: 15px;
+    color: #999;
+  }
+  .call-actions {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 320px;
+  }
+  .call-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .call-btn-wrap span {
+    font-size: 13px;
+    color: #ccc;
+  }
+  .call-action-btn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: white;
+  }
+  .call-action-btn.decline {
+    background: #ff3b30;
+    transform: rotate(135deg);
+  }
+  .call-action-btn.accept {
+    background: #34c759;
+  }
+</style>
+</head>
+<body>
+
+<select class="lang-selector" id="langSelector" onchange="setLanguage(this.value)">
+  <option value="en">English</option>
+  <option value="hi">हिंदी</option>
+  <option value="mr">मराठी</option>
+</select>
+
+<h1>🆘 <span id="txt-title">SOS Safety</span></h1>
+<div class="subtitle" id="txt-subtitle">Tap the button in an emergency</div>
+
+<button class="sos-btn" onclick="triggerSOS()">SOS</button>
+<div class="status" id="status"></div>
+
+<button class="fake-call-btn" onclick="fakeCall()">📞 <span id="txt-fakecall">Emergency Call</span></button>
+
+<div class="section">
+  <h3 id="txt-contacts-h">Emergency Contacts</h3>
+  <input type="text" id="contactName" placeholder="Name">
+  <input type="tel" id="contactPhone" placeholder="Phone (with country code, e.g. 91XXXXXXXXXX)">
+  <button class="add-btn" onclick="addContact()" id="txt-addbtn">+ Add Contact</button>
+  <div id="contactList" style="margin-top:12px;"></div>
+</div>
+
+<div class="section">
+  <h3 id="txt-police-h">Nearby Police Stations</h3>
+  <div id="policeList"></div>
+</div>
+
+<!-- Fake Incoming Call Screen -->
+<div id="fakeCallScreen" class="fake-call-screen">
+  <div class="call-top">
+    <div class="caller-avatar">👤</div>
+    <div class="caller-name" id="callerName">Mom</div>
+    <div class="call-status" id="callStatusText">Incoming call...</div>
+  </div>
+  <div class="call-actions">
+    <div class="call-btn-wrap">
+      <button class="call-action-btn decline" onclick="endFakeCall()">📞</button>
+      <span>Decline</span>
+    </div>
+    <div class="call-btn-wrap">
+      <button class="call-action-btn accept" onclick="acceptFakeCall()">📞</button>
+      <span>Accept</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- SUPABASE CONFIG: replace these two lines with your own ----
+const SUPABASE_URL = "https://wutpzxrokrgluckdhqnb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_69Tw2dVsKdnJKIXKJQZeXw_nGvQ5H4J";
+let supabaseClient = null;
+try {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  console.error("Supabase failed to load:", e);
+}
+
+// Static police station list (edit with your local area stations)
+const policeStations = [
+  { name: "Satara City Police Station", phone: "100" },
+  { name: "MIDC Police Station, Satara", phone: "100" },
+  { name: "Women Helpline", phone: "1091" }
+];
+
+// ---- MULTI-LANGUAGE SUPPORT ----
+const translations = {
+  en: {
+    title: "SOS Safety",
+    subtitle: "Tap the button in an emergency",
+    fakecall: "Emergency Call",
+    contactsH: "Emergency Contacts",
+    addbtn: "+ Add Contact",
+    policeH: "Nearby Police Stations",
+    namePh: "Name",
+    phonePh: "Phone (with country code, e.g. 91XXXXXXXXXX)",
+    gettingLocation: "Getting your location...",
+    noGeo: "Geolocation not supported on this device.",
+    noContacts: "No emergency contacts added yet!",
+    locCaptured: "Location captured. Opening SMS...",
+    locDenied: "Location access denied. Enable location permission.",
+    fillFields: "Fill both fields",
+    smsMessage: "EMERGENCY! I need help. My location:",
+    call: "Call"
+  },
+  hi: {
+    title: "एसओएस सुरक्षा",
+    subtitle: "आपातकाल में बटन दबाएं",
+    fakecall: "आपातकालीन कॉल",
+    contactsH: "आपातकालीन संपर्क",
+    addbtn: "+ संपर्क जोड़ें",
+    policeH: "नजदीकी पुलिस स्टेशन",
+    namePh: "नाम",
+    phonePh: "फ़ोन नंबर (देश कोड सहित, जैसे 91XXXXXXXXXX)",
+    gettingLocation: "आपका स्थान प्राप्त किया जा रहा है...",
+    noGeo: "इस डिवाइस पर लोकेशन सुविधा उपलब्ध नहीं है।",
+    noContacts: "अभी तक कोई आपातकालीन संपर्क नहीं जोड़ा गया!",
+    locCaptured: "स्थान प्राप्त हुआ। एसएमएस खोला जा रहा है...",
+    locDenied: "स्थान की अनुमति नहीं मिली। कृपया अनुमति दें।",
+    fillFields: "कृपया दोनों फ़ील्ड भरें",
+    smsMessage: "आपातकाल! मुझे मदद चाहिए। मेरा स्थान:",
+    call: "कॉल करें"
+  },
+  mr: {
+    title: "एसओएस सुरक्षा",
+    subtitle: "आणीबाणीत बटण दाबा",
+    fakecall: "आणीबाणी कॉल",
+    contactsH: "आणीबाणी संपर्क",
+    addbtn: "+ संपर्क जोडा",
+    policeH: "जवळचे पोलीस स्टेशन",
+    namePh: "नाव",
+    phonePh: "फोन नंबर (देश कोडसह, उदा. 91XXXXXXXXXX)",
+    gettingLocation: "तुमचे स्थान मिळवत आहे...",
+    noGeo: "या डिव्हाइसवर लोकेशन सुविधा उपलब्ध नाही.",
+    noContacts: "अद्याप कोणताही आणीबाणी संपर्क जोडलेला नाही!",
+    locCaptured: "स्थान मिळाले. एसएमएस उघडत आहे...",
+    locDenied: "स्थानाची परवानगी नाकारली. कृपया परवानगी द्या.",
+    fillFields: "कृपया दोन्ही रकाने भरा",
+    smsMessage: "आणीबाणी! मला मदत हवी आहे. माझे स्थान:",
+    call: "कॉल करा"
+  }
+};
+
+let currentLang = localStorage.getItem("sosLang") || "en";
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("sosLang", lang);
+  const t = translations[lang];
+  document.getElementById("txt-title").textContent = t.title;
+  document.getElementById("txt-subtitle").textContent = t.subtitle;
+  document.getElementById("txt-fakecall").textContent = t.fakecall;
+  document.getElementById("txt-contacts-h").textContent = t.contactsH;
+  document.getElementById("txt-addbtn").textContent = t.addbtn;
+  document.getElementById("txt-police-h").textContent = t.policeH;
+  document.getElementById("contactName").placeholder = t.namePh;
+  document.getElementById("contactPhone").placeholder = t.phonePh;
+  document.getElementById("langSelector").value = lang;
+  renderPolice();
+}
+
+function renderPolice() {
+  const list = document.getElementById("policeList");
+  const t = translations[currentLang];
+  list.innerHTML = "";
+  policeStations.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "police-item";
+    div.innerHTML = `<span>${p.name}</span><a href="tel:${p.phone}">${t.call}</a>`;
+    list.appendChild(div);
+  });
+}
+
+async function loadContacts() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient.from("contacts").select("*").order("created_at");
+  const list = document.getElementById("contactList");
+  list.innerHTML = "";
+  if (error) { console.error(error); return; }
+  data.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "contact-item";
+    div.innerHTML = `<span>${c.name} - ${c.phone}</span>
+      <button class="del-btn" onclick="deleteContact('${c.id}')">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+async function addContact() {
+  const name = document.getElementById("contactName").value.trim();
+  const phone = document.getElementById("contactPhone").value.trim();
+  if (!name || !phone) { alert(translations[currentLang].fillFields); return; }
+  const { error } = await supabaseClient.from("contacts").insert([{ name, phone }]);
+  if (error) { console.error(error); alert("Error saving contact"); return; }
+  document.getElementById("contactName").value = "";
+  document.getElementById("contactPhone").value = "";
+  loadContacts();
+}
+
+async function deleteContact(id) {
+  await supabaseClient.from("contacts").delete().eq("id", id);
+  loadContacts();
+}
+
+let mediaRecorder = null;
+let audioChunks = [];
+
+function startEmergencyRecording() {
+  const status = document.getElementById("status");
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    console.error("getUserMedia not supported");
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      audioChunks = [];
+
+      let options = { mimeType: "audio/webm" };
+      if (!MediaRecorder.isTypeSupported("audio/webm")) {
+        options = {}; // let browser pick a supported default (e.g. Safari)
+      }
+      mediaRecorder = new MediaRecorder(stream, options);
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        const ext = (mediaRecorder.mimeType || "audio/webm").includes("mp4") ? "m4a" : "webm";
+        const a = document.createElement("a");
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        a.href = url;
+        a.download = `SOS_recording_${timestamp}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      console.log("Recording started");
+      const statusEl = document.getElementById("status");
+      if (statusEl) statusEl.textContent = "🎙️ Recording... (30s)";
+
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+      }, 30000);
+    })
+    .catch(err => {
+      console.error("Microphone access denied or unavailable:", err);
+      if (status) {
+        status.textContent = "Mic permission denied — recording skipped, SOS still sent.";
+      }
+    });
+}
+
+function triggerSOS() {
+  const status = document.getElementById("status");
+  const t = translations[currentLang];
+  status.textContent = t.gettingLocation;
+
+  if (!navigator.geolocation) {
+    status.textContent = t.noGeo;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    // Start audio recording only after location permission is resolved
+    startEmergencyRecording();
+
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+
+    // Save log to Supabase
+    await supabaseClient.from("sos_logs").insert([{ latitude: lat, longitude: lng }]);
+
+    // Get contacts and open SMS with location
+    const { data: contacts } = await supabaseClient.from("contacts").select("*");
+    if (!contacts || contacts.length === 0) {
+      status.textContent = t.noContacts;
+      return;
+    }
+
+    const phones = contacts.map(c => c.phone).join(",");
+    const message = encodeURIComponent(`${t.smsMessage} ${mapsLink}`);
+    status.textContent = t.locCaptured;
+
+    // Opens native SMS app with pre-filled message
+    window.location.href = `sms:${phones}?body=${message}`;
+
+  }, (err) => {
+    status.textContent = t.locDenied;
+  }, { enableHighAccuracy: true });
+}
+
+let ringInterval = null;
+
+function fakeCall() {
+  document.getElementById("fakeCallScreen").style.display = "flex";
+  document.getElementById("callStatusText").textContent = "Incoming call...";
+
+  // Vibrate pattern if supported (silent phones will still show visual ring)
+  if (navigator.vibrate) {
+    ringInterval = setInterval(() => navigator.vibrate([500, 300]), 1600);
+    navigator.vibrate([500, 300]);
+  }
+}
+
+function acceptFakeCall() {
+  clearInterval(ringInterval);
+  if (navigator.vibrate) navigator.vibrate(0);
+  document.getElementById("callStatusText").textContent = "00:01";
+  let seconds = 1;
+  const timer = setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    document.getElementById("callStatusText").textContent = `${m}:${s}`;
+  }, 1000);
+  // Auto end after 10 seconds of "talking"
+  setTimeout(() => {
+    clearInterval(timer);
+    endFakeCall();
+  }, 10000);
+}
+
+function endFakeCall() {
+  clearInterval(ringInterval);
+  if (navigator.vibrate) navigator.vibrate(0);
+  document.getElementById("fakeCallScreen").style.display = "none";
+}
+
+setLanguage(currentLang);
+loadContacts();
+</script>
+
+</body>
+</html>
